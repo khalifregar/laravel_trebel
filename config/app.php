@@ -182,6 +182,9 @@ return [
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
 
+        // 🔥 Tambahin ini:
+        App\Providers\OtpServiceProvider::class,
+
         /*
          * Package Service Providers...
          */

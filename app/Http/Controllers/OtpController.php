@@ -18,10 +18,14 @@ class OtpController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate([
+            'user_id' => 'required|integer',
             'phone' => 'required|string|max:20',
         ]);
 
-        $userOtp = $this->otpService->generateOtp($request->phone);
+        $userOtp = $this->otpService->generateOtp(
+            $request->user_id,
+            $request->phone
+        );
 
         return $this->otpService->sendOtp($userOtp);
     }
@@ -29,19 +33,26 @@ class OtpController extends Controller
     public function verifyOtp(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string|max:20',
+            'user_id' => 'required|integer',
             'otp' => 'required|string',
         ]);
 
-        return $this->otpService->verifyOtp($request->phone, $request->otp);
+        return $this->otpService->verifyOtp(
+            $request->user_id,
+            $request->otp
+        );
     }
 
     public function resendOtp(Request $request)
     {
         $request->validate([
+            'user_id' => 'required|integer',
             'phone' => 'required|string|max:20',
         ]);
 
-        return $this->otpService->resendOtp($request->phone);
+        return $this->otpService->resendOtp(
+            $request->user_id,
+            $request->phone
+        );
     }
 }
