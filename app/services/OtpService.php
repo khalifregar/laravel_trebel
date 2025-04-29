@@ -3,19 +3,22 @@
 namespace App\Services;
 
 use App\Models\UserOtp;
+use App\Models\User;
 use App\Helpers\ResponseHelper;
-use App\Helpers\OtpFormatter; // ✅ Tambahkan ini
+use App\Helpers\OtpFormatter;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use Carbon\Carbon;
 
 class OtpService
 {
-    public function generateOtp(string $phone): UserOtp
+    public function generateOtp(int $user_id, string $phone): UserOtp
     {
         $otp = random_int(100000, 999999);
 
         return UserOtp::create([
+            'user_id' => $user_id,
             'phone' => $phone,
             'otp' => $otp,
             'otp_token' => Str::random(16),
@@ -30,7 +33,7 @@ class OtpService
         $token = env('ULTRAMSG_TOKEN');
         $url = "https://api.ultramsg.com/{$instanceId}/messages/chat";
 
-        $messageBody = OtpFormatter::formatMessage($userOtp->otp, 5); // ✅ Pakai helper
+        $messageBody = OtpFormatter::formatMessage($userOtp->otp, 5);
 
         $response = Http::asForm()
             ->withoutVerifying()
@@ -52,9 +55,9 @@ class OtpService
         }
     }
 
-    public function verifyOtp(string $phone, string $otp)
+    public function verifyOtp(int $user_id, string $otp)
     {
-        $userOtp = UserOtp::where('phone', $phone)
+        $userOtp = UserOtp::where('user_id', $user_id)
             ->where('otp', $otp)
             ->where('is_verified', false)
             ->where('expired_at', '>', now())
@@ -68,22 +71,34 @@ class OtpService
             'is_verified' => true,
         ]);
 
-        return ResponseHelper::success('OTP verified successfully');
+        $user = User::where('user_id', $user_id)->first();
+
+        if (!$user) {
+            return ResponseHelper::error('User not found.', 404);
+        }
+
+        $token = JWTAuth::fromUser($user);
+
+        return ResponseHelper::success('OTP verified successfully', [
+            'access_token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'user_id' => $user->user_id,
+                'email' => $user->email,
+                'username' => $user->username,
+            ],
+        ]);
     }
 
-    public function resendOtp(string $phone)
-{
-    // Hapus OTP lama yang belum diverifikasi dan belum expired
-    UserOtp::where('phone', $phone)
-        ->where('is_verified', false)
-        ->where('expired_at', '>', now())
-        ->delete();
+    public function resendOtp(int $user_id, string $phone)
+    {
+        UserOtp::where('user_id', $user_id)
+            ->where('is_verified', false)
+            ->where('expired_at', '>', now())
+            ->delete();
 
-    // Generate OTP baru
-    $newOtp = $this->generateOtp($phone);
+        $newOtp = $this->generateOtp($user_id, $phone);
 
-    // Kirim OTP baru
-    return $this->sendOtp($newOtp);
-}
-
+        return $this->sendOtp($newOtp);
+    }
 }

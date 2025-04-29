@@ -10,9 +10,10 @@ class UserOtp extends Model
     use HasFactory;
 
     protected $fillable = [
-        'phone',
+        'user_id',    // ✅ Tambah field user_id
+        'phone',      // ✅ Tetap ada phone buat kirim OTP
         'otp',
-        'otp_token', // ✅ Tambahkan ini!
+        'otp_token',
         'expired_at',
         'is_verified',
     ];

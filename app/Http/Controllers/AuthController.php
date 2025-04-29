@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\UserOtp;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Helpers\ResponseHelper;
@@ -19,7 +20,6 @@ class AuthController extends Controller
         $this->otpService = $otpService;
     }
 
-    // Register
     public function register(Request $request, $user_id = null)
     {
         $request->validate([
@@ -29,24 +29,20 @@ class AuthController extends Controller
             'phone' => 'required|string|max:20|unique:users',
         ]);
 
-        // 🔥 Kalau user_id tidak dikasih dari URL, generate otomatis
         if (is_null($user_id)) {
             do {
                 $user_id = random_int(1000, 9999);
             } while (User::withTrashed()->where('user_id', $user_id)->exists());
         } else {
-            // 🔥 Cek apakah user_id ini sudah pernah ada sebelumnya (termasuk yang sudah dihapus)
             $existingUser = User::withTrashed()
                 ->where('user_id', $user_id)
                 ->first();
 
             if ($existingUser) {
                 if (!$existingUser->trashed()) {
-                    // User masih aktif, tidak boleh daftar ulang
                     return ResponseHelper::error('User ID is already registered.', 409);
                 }
 
-                // Kalau user sudah dihapus, cek selisih waktunya
                 $deletedAt = $existingUser->deleted_at;
                 $now = now();
                 $diffInMonths = $deletedAt->diffInMonths($now);
@@ -56,12 +52,10 @@ class AuthController extends Controller
                     return ResponseHelper::error("You can register again after {$remaining} more month(s).", 403);
                 }
 
-                // Kalau sudah lebih dari 3 bulan, hapus data lama permanen
                 $existingUser->forceDelete();
             }
         }
 
-        // 🔥 Setelah aman, lanjut create user baru
         $user = User::create([
             'user_id' => $user_id,
             'email' => $request->email,
@@ -70,8 +64,12 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $userOtp = $this->otpService->generateOtp($request->phone);
-        $this->otpService->sendOtp($userOtp);
+        $userOtp = $this->otpService->generateOtp(
+            $user->user_id,
+            $user->phone
+        );
+
+        $this->otpService->sendOtp($userOtp, $user->phone);
 
         $token = JWTAuth::fromUser($user);
 
@@ -84,9 +82,6 @@ class AuthController extends Controller
         ]);
     }
 
-
-
-    // Login
     public function login(Request $request, $user_id)
     {
         $request->validate([
@@ -97,7 +92,6 @@ class AuthController extends Controller
         $login = $request->input('login');
         $password = $request->input('password');
 
-        // 🔥 Cari user termasuk yang soft deleted
         $user = User::withTrashed()
             ->where(function ($query) use ($login) {
                 $query->where('email', $login)
@@ -110,7 +104,6 @@ class AuthController extends Controller
             return ResponseHelper::error('User not found.', 404);
         }
 
-        // 🔥 Cek apakah user sudah dihapus (soft delete)
         if ($user->trashed()) {
             return ResponseHelper::error('Your account has been deleted. You cannot login.', 403);
         }
@@ -119,7 +112,7 @@ class AuthController extends Controller
             return ResponseHelper::error('Invalid credentials.', 401);
         }
 
-        $otpVerified = \App\Models\UserOtp::where('phone', $user->phone)
+        $otpVerified = UserOtp::where('user_id', $user->user_id)
             ->where('is_verified', true)
             ->latest('updated_at')
             ->first();
@@ -139,8 +132,6 @@ class AuthController extends Controller
         ]);
     }
 
-
-    // Logout
     public function logout(Request $request)
     {
         try {
@@ -158,7 +149,6 @@ class AuthController extends Controller
         }
     }
 
-    // Profile (GET)
     public function profile($user_id)
     {
         $user = auth()->user();
@@ -176,7 +166,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // Update Profile (PATCH)
     public function updateProfile(Request $request, $user_id)
     {
         $user = auth()->user();
@@ -220,16 +209,15 @@ class AuthController extends Controller
     }
 
     public function deleteAccount($user_id)
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    if (!$user || $user->user_id != $user_id) {
-        return ResponseHelper::error('Unauthorized access to delete account.', 403);
+        if (!$user || $user->user_id != $user_id) {
+            return ResponseHelper::error('Unauthorized access to delete account.', 403);
+        }
+
+        $user->delete();
+
+        return ResponseHelper::success('Account deleted successfully. You can register again after 3 months.');
     }
-
-    $user->delete(); // 🔥 Soft delete user
-
-    return ResponseHelper::success('Account deleted successfully. You can register again after 3 months.');
-}
-
 }
