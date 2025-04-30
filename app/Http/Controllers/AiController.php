@@ -9,7 +9,7 @@ use App\Helpers\MoodHelper;
 use App\Models\AiHistory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB; // Tambahkan ini di atas
+use Illuminate\Support\Facades\DB;
 
 class AiController extends Controller
 {
@@ -30,34 +30,57 @@ class AiController extends Controller
             $user = Auth::user();
             $userId = $user?->id ?? null;
             $userName = $user?->name ?? 'Sobat';
-
             $prompt = $request->input('prompt');
             $lowerPrompt = strtolower($prompt);
+            $lastMoodKey = $userId ? "nuno_last_mood_user_{$userId}" : null;
+            $ttl = now()->addHours(env('NUNO_MOOD_CACHE_TTL', 1));
 
-            // Ambil mood terakhir dari cache
-            $lastMood = $userId ? Cache::get("nuno_last_mood_user_{$userId}") : null;
+            $lastMood = null;
+            if ($lastMoodKey) {
+                $lastMood = Cache::get($lastMoodKey);
+                if (!$lastMood) {
+                    $lastMood = AiHistory::where('user_id', $userId)
+                        ->whereNotNull('mood')
+                        ->latest()
+                        ->value('mood');
 
-            // Panggil GPT service
+                    if ($lastMood) {
+                        Cache::put($lastMoodKey, $lastMood, $ttl);
+                    }
+                }
+            }
+
+            if ($userId) {
+                $todayMoodKey = "nuno_today_mood_user_{$userId}";
+
+                $dominantTodayMood = Cache::remember($todayMoodKey, now()->addHours(24), function () use ($userId) {
+                    return AiHistory::where('user_id', $userId)
+                        ->whereDate('created_at', now())
+                        ->whereNotNull('mood')
+                        ->select('mood', DB::raw('count(*) as total'))
+                        ->groupBy('mood')
+                        ->orderByDesc('total')
+                        ->value('mood'); // cuma ambil mood terbanyak
+                });
+            }
+
             $ai = $this->gptService->chat($prompt, $userName);
             $mood = $ai['mood'];
             $response = $ai['response'];
 
-            // Simpan mood ke cache (1 jam)
-            if ($userId && $mood) {
-                Cache::put("nuno_last_mood_user_{$userId}", $mood, now()->addHour());
+            if ($lastMoodKey && $mood) {
+                Cache::put($lastMoodKey, $mood, $ttl);
             }
 
-            // Simpan histori ke DB
             if ($userId) {
                 AiHistory::create([
                     'user_id' => $userId,
                     'prompt' => $prompt,
                     'response' => $response,
-                    'mood' => $mood, // ← mood dari GPTService
+                    'mood' => $mood,
                 ]);
             }
 
-            // Buat greeting berdasarkan mood sebelumnya
             $greeting = $this->generateGreeting($userName, $lastMood);
 
             return response()->json([
@@ -73,64 +96,68 @@ class AiController extends Controller
         }
     }
 
-    // Tambahkan method baru di bawah method recommend
-public function moodTracking(Request $request)
-{
-    try {
-        $user = Auth::user();
-        if (!$user) {
+    public function moodTracking(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
+
+            $histories = AiHistory::where('user_id', $user->id)
+                ->whereNotNull('mood')
+                ->select(
+                    DB::raw('DATE(created_at) as date'),
+                    'mood',
+                    DB::raw('count(*) as total')
+                )
+                ->groupBy('date', 'mood')
+                ->orderBy('date', 'desc')
+                ->get();
+
+            $result = [];
+            foreach ($histories as $history) {
+                $date = $history->date;
+                $mood = $history->mood;
+                $total = $history->total;
+                if (!isset($result[$date])) {
+                    $result[$date] = [];
+                }
+                $result[$date][$mood] = $total;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized',
-            ], 401);
+                'message' => 'Gagal memproses tracking mood',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        $histories = AiHistory::where('user_id', $user->id)
-            ->whereNotNull('mood')
-            ->select(
-                DB::raw('DATE(created_at) as date'),
-                'mood',
-                DB::raw('count(*) as total')
-            )
-            ->groupBy('date', 'mood')
-            ->orderBy('date', 'desc')
-            ->get();
-
-        $result = [];
-
-        foreach ($histories as $history) {
-            $date = $history->date;
-            $mood = $history->mood;
-            $total = $history->total;
-
-            if (!isset($result[$date])) {
-                $result[$date] = [];
-            }
-            $result[$date][$mood] = $total;
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $result,
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal memproses tracking mood',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
     private function generateGreeting(string $userName, ?string $lastMood): string
     {
-        return match ($lastMood) {
-            'sad' => "😢 Hai {$userName}, semoga kamu udah merasa lebih baik ya. Yuk kita ngobrol lagi bareng NUNO AI~\n\n",
-            'happy' => "✨ Hai {$userName}, masih happy kan? Seru banget loh ngobrol sama kamu kemarin! 😄\n\n",
-            'angry' => "😤 Hai {$userName}, semoga sekarang udah lebih chill ya. Gue di sini buat nemenin lo lagi~\n\n",
-            default => $this->randomGreeting($userName),
-        };
+        $userId = Auth::id();
+        $dominantTodayMood = $userId ? Cache::get("nuno_today_mood_user_{$userId}") : null;
+
+        if ($dominantTodayMood && $dominantTodayMood !== $lastMood) {
+            return "🔄 Hari ini kamu lebih sering {$dominantTodayMood}, padahal tadi kamu {$lastMood}. Seru ya liat mood kamu berubah! 😄\n\n";
+        }
+
+        $greeting = \App\Helpers\MoodGreetingHelper::getGreeting($lastMood, $userName);
+
+        return $greeting ? $greeting . "\n\n" : $this->randomGreeting($userName);
     }
+
+
+
 
     private function randomGreeting(string $userName): string
     {
