@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\MoodHelper;
+use Illuminate\Support\Facades\Cache;
 
 
 class GptService
@@ -37,35 +38,45 @@ class GptService
             $isAngryMood
         );
 
+        // 🧠 Key unik per prompt
+        $cacheKey = 'nuno_gpt_response_' . md5($prompt);
+        $ttl = now()->addMinutes(env('NUNO_GPT_RESPONSE_TTL', 30));
+
         try {
-            $template = $this->loadPromptTemplate();
+            // 🚀 Coba ambil dari cache dulu
+            return Cache::remember($cacheKey, $ttl, function () use ($prompt, $systemPrompt, $lowerPrompt, $userName) {
+                $template = $this->loadPromptTemplate();
 
-            $jsonString = json_encode($template);
-            $filledJson = str_replace(
-                ['{{systemPrompt}}', '{{userPrompt}}'],
-                [$systemPrompt, $prompt],
-                $jsonString
-            );
+                $jsonString = json_encode($template);
+                $filledJson = str_replace(
+                    ['{{systemPrompt}}', '{{userPrompt}}'],
+                    [$systemPrompt, $prompt],
+                    $jsonString
+                );
 
-            $requestBody = json_decode($filledJson, true);
+                $requestBody = json_decode($filledJson, true);
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.openai.api_key'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.openai.com/v1/chat/completions', $requestBody);
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . config('services.openai.api_key'),
+                    'Content-Type' => 'application/json',
+                ])->post('https://api.openai.com/v1/chat/completions', $requestBody);
 
-            $result = $response->json('choices.0.message.content') ??
-                'maaf ya aku lagi ada error coba lagi nanti ya';
+                $result = $response->json('choices.0.message.content') ??
+                    'maaf ya aku lagi ada error coba lagi nanti ya';
 
-            if (app()->isLocal()) {
-                Log::info('GPT Request', ['prompt' => $prompt, 'user' => $userName]);
-                Log::info('GPT Response', ['response' => $result]);
-            }
-            $mood = MoodHelper::detectMoodFromPrompt($lowerPrompt);
-            return [
-                'response' => $result,
-                'mood' => $mood,
-            ];
+                if (app()->isLocal()) {
+                    Log::info('GPT Request', ['prompt' => $prompt, 'user' => $userName]);
+                    Log::info('GPT Response', ['response' => $result]);
+                }
+
+                $mood = MoodHelper::detectMoodFromPrompt($lowerPrompt);
+
+                return [
+                    'response' => $result,
+                    'mood' => $mood,
+                ];
+            });
+
         } catch (\Throwable $e) {
             Log::error('GPT Error: ' . $e->getMessage());
             return [
@@ -74,6 +85,7 @@ class GptService
             ];
         }
     }
+
 
     private function containsAny(string $text, array $keywords): bool
     {
