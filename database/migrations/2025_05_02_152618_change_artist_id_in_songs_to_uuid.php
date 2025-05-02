@@ -4,22 +4,22 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('songs', function (Blueprint $table) {
-            $table->id(); // Primary key internal
-            $table->uuid('song_id')->unique(); // UUID untuk public access
+            $table->id(); // internal PK
+            $table->uuid('song_id')->unique(); // UUID untuk public API
 
             $table->string('title');
             $table->string('album')->nullable();
             $table->string('duration')->nullable();
 
-            // Relasi ke artist
-            $table->foreignId('artist_id')->constrained('artists')->onDelete('restrict');
+            // ✅ UUID foreign key ke artists.artist_id
+            $table->uuid('artist_id')->nullable();
+            $table->foreign('artist_id')->references('artist_id')->on('artists')->nullOnDelete();
 
-            // Relasi ke genre
+            // ✅ genre tetap pakai foreignId karena genre_id-nya integer
             $table->foreignId('genre_id')->constrained('genres')->onDelete('restrict');
 
             $table->timestamps();

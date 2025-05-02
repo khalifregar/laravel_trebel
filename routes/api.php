@@ -7,6 +7,7 @@ use App\Http\Controllers\AiController;
 use App\Http\Controllers\PlaylistController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\GenreController;
+use App\Http\Controllers\ArtistController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,17 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/genres/{slug}/songs', [SongController::class, 'store']); // ✅ tambah lagu berdasarkan slug genre
     Route::patch('/songs/{song_id}', [SongController::class, 'update']); // ✅ update lagu by UUID
     Route::delete('/songs/{song_id}', [SongController::class, 'destroy']); // ✅ hapus lagu by UUID
+});
+
+Route::middleware('auth:api')->group(function () {
+    Route::get('/artists', [ArtistController::class, 'index']);
+    Route::post('/artists', [ArtistController::class, 'store']);
+    Route::get('/artists/{artist_id}', [ArtistController::class, 'show']);
+    Route::patch('/artists/{artist_id}', [ArtistController::class, 'update']);
+    Route::delete('/artists/{artist_id}', [ArtistController::class, 'destroy']);
+
+    // ✅ Tambahan route untuk bikin playlist otomatis ke artis
+    Route::post('/artists/{artist_id}/playlists', [ArtistController::class, 'storePlaylist']);
 });
 
 

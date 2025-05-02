@@ -11,7 +11,7 @@ class PlaylistController extends Controller
 {
     public function index()
     {
-        $playlists = Playlist::with(['genre', 'songs'])->get();
+        $playlists = Playlist::with(['genre', 'songs.artist'])->get();
 
         $data = $playlists->map(function ($playlist) {
             return [
@@ -23,9 +23,12 @@ class PlaylistController extends Controller
                     return [
                         'song_id' => $song->song_id,
                         'title' => $song->title,
-                        'artist' => $song->artist,
                         'album' => $song->album,
                         'duration' => $song->duration,
+                        'artist' => $song->artist ? [
+                            'artist_id' => $song->artist->artist_id,
+                            'name' => $song->artist->name,
+                        ] : null,
                     ];
                 }),
             ];
@@ -48,16 +51,16 @@ class PlaylistController extends Controller
 
         $genre = Genre::where('genre_id', $validated['genre_id'])->firstOrFail();
 
-        // Cek apakah playlist dengan title & genre sama sudah ada
         $existing = Playlist::where('title', $validated['title'])
             ->where('genre_id', $genre->id)
             ->first();
 
+        $newSongIds = Song::whereIn('song_id', $validated['songs'])->pluck('id')->toArray();
+
         if ($existing) {
             $existingSongIds = $existing->songs()->pluck('songs.id')->toArray();
-            $newSongIds = Song::whereIn('song_id', $validated['songs'])->pluck('id')->toArray();
-
             $toAdd = array_diff($newSongIds, $existingSongIds);
+            $merged = array_unique(array_merge($existingSongIds, $toAdd));
 
             if (empty($toAdd)) {
                 return response()->json([
@@ -65,8 +68,6 @@ class PlaylistController extends Controller
                     'message' => 'Semua lagu sudah ada di playlist ini.'
                 ], 409);
             }
-
-            $merged = array_unique(array_merge($existingSongIds, $toAdd));
 
             if (count($merged) > 60) {
                 return response()->json([
@@ -76,7 +77,7 @@ class PlaylistController extends Controller
             }
 
             $existing->songs()->sync($merged);
-            $existing->load(['genre', 'songs']);
+            $existing->load(['genre', 'songs.artist']);
 
             return response()->json([
                 'success' => true,
@@ -90,9 +91,12 @@ class PlaylistController extends Controller
                         return [
                             'song_id' => $song->song_id,
                             'title' => $song->title,
-                            'artist' => $song->artist,
                             'album' => $song->album,
                             'duration' => $song->duration,
+                            'artist' => $song->artist ? [
+                                'artist_id' => $song->artist->artist_id,
+                                'name' => $song->artist->name,
+                            ] : null,
                         ];
                     }),
                     'created_at' => $existing->created_at,
@@ -101,7 +105,7 @@ class PlaylistController extends Controller
             ], 200);
         }
 
-        if (count($validated['songs']) > 60) {
+        if (count($newSongIds) > 60) {
             return response()->json([
                 'success' => false,
                 'message' => 'Playlist tidak boleh memiliki lebih dari 60 lagu.'
@@ -113,9 +117,8 @@ class PlaylistController extends Controller
             'genre_id' => $genre->id,
         ]);
 
-        $songIds = Song::whereIn('song_id', $validated['songs'])->pluck('id');
-        $playlist->songs()->sync($songIds);
-        $playlist->load(['genre', 'songs']);
+        $playlist->songs()->sync($newSongIds);
+        $playlist->load(['genre', 'songs.artist']);
 
         return response()->json([
             'success' => true,
@@ -129,9 +132,12 @@ class PlaylistController extends Controller
                     return [
                         'song_id' => $song->song_id,
                         'title' => $song->title,
-                        'artist' => $song->artist,
                         'album' => $song->album,
                         'duration' => $song->duration,
+                        'artist' => $song->artist ? [
+                            'artist_id' => $song->artist->artist_id,
+                            'name' => $song->artist->name,
+                        ] : null,
                     ];
                 }),
                 'created_at' => $playlist->created_at,
@@ -142,7 +148,7 @@ class PlaylistController extends Controller
 
     public function show($playlist_id)
     {
-        $playlist = Playlist::with(['genre', 'songs'])
+        $playlist = Playlist::with(['genre', 'songs.artist'])
             ->where('playlist_id', $playlist_id)
             ->firstOrFail();
 
@@ -157,9 +163,12 @@ class PlaylistController extends Controller
                     return [
                         'song_id' => $song->song_id,
                         'title' => $song->title,
-                        'artist' => $song->artist,
                         'album' => $song->album,
                         'duration' => $song->duration,
+                        'artist' => $song->artist ? [
+                            'artist_id' => $song->artist->artist_id,
+                            'name' => $song->artist->name,
+                        ] : null,
                     ];
                 }),
             ]
