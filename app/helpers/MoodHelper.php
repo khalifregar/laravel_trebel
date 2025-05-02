@@ -9,12 +9,14 @@ class MoodHelper
     public static function detectMoodFromPrompt(string $text): ?string
     {
         $keywords = self::loadKeywords();
+        $threshold = (int) env('NUNO_MOOD_THRESHOLD', 80); // default 80%
 
         foreach ($keywords as $category => $wordList) {
             if (!is_array($wordList)) continue;
 
             foreach ($wordList as $word) {
-                if (str_contains($text, strtolower($word))) {
+                similar_text(strtolower($text), strtolower($word), $percent);
+                if ($percent >= $threshold) {
                     return $category;
                 }
             }
@@ -35,3 +37,4 @@ class MoodHelper
         return json_decode($json, true) ?? [];
     }
 }
+
