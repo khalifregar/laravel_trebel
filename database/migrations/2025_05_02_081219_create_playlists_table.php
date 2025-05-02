@@ -11,11 +11,18 @@ return new class extends Migration
         Schema::create('playlists', function (Blueprint $table) {
             $table->id(); // internal PK
             $table->uuid('playlist_id')->unique(); // UUID publik untuk API/mobile
+
             $table->string('title');
-            $table->foreignId('genre_id')->constrained('genres')->onDelete('restrict'); // FK ke genres
+
+            // Optional: playlist bisa dibuat oleh artis atau developer/user
+            $table->foreignId('artist_id')->nullable()->constrained('artists')->nullOnDelete();
+
+            // Relasi ke genre
+            $table->foreignId('genre_id')->constrained('genres')->onDelete('restrict');
+
             $table->timestamps();
 
-            // ✅ Tambahkan constraint kombinasi unik agar tidak ada duplikat nama dalam genre yang sama
+            // Cegah duplikasi judul dalam satu genre
             $table->unique(['title', 'genre_id']);
         });
     }

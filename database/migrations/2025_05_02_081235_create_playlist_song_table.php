@@ -9,10 +9,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('playlist_song', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('playlist_id')->constrained('playlists')->onDelete('cascade');
-            $table->foreignId('song_id')->constrained('songs')->onDelete('cascade');
+            $table->id(); // internal PK
+
+            // Relasi ke playlist
+            $table->foreignId('playlist_id')
+                ->constrained('playlists')
+                ->onDelete('cascade');
+
+            // Relasi ke song
+            $table->foreignId('song_id')
+                ->constrained('songs')
+                ->onDelete('cascade');
+
             $table->timestamps();
+
+            // Tambahkan constraint agar tidak ada lagu yang duplikat di playlist yang sama
+            $table->unique(['playlist_id', 'song_id']);
         });
     }
 
