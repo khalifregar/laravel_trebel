@@ -64,16 +64,17 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $userOtp = $this->otpService->generateOtp(
-            $user->user_id,
-            $user->phone
-        );
+        // ✂️ OTP logic disabled
+        // $userOtp = $this->otpService->generateOtp(
+        //     $user->user_id,
+        //     $user->phone
+        // );
 
-        $this->otpService->sendOtp($userOtp, $user->phone);
+        // $this->otpService->sendOtp($userOtp, $user->phone);
 
         $token = JWTAuth::fromUser($user);
 
-        return ResponseHelper::success('Register successful. OTP has been sent.', [
+        return ResponseHelper::success('Register successful.', [
             'id' => $user->id,
             'user_id' => $user->user_id,
             'email' => $user->email,
@@ -95,7 +96,7 @@ class AuthController extends Controller
         $user = User::withTrashed()
             ->where(function ($query) use ($login) {
                 $query->where('email', $login)
-                      ->orWhere('username', $login);
+                    ->orWhere('username', $login);
             })
             ->where('user_id', $user_id)
             ->first();
@@ -112,14 +113,15 @@ class AuthController extends Controller
             return ResponseHelper::error('Invalid credentials.', 401);
         }
 
-        $otpVerified = UserOtp::where('user_id', $user->user_id)
-            ->where('is_verified', true)
-            ->latest('updated_at')
-            ->first();
+        // ✂️ OTP verification disabled
+        // $otpVerified = UserOtp::where('user_id', $user->user_id)
+        //     ->where('is_verified', true)
+        //     ->latest('updated_at')
+        //     ->first();
 
-        if (!$otpVerified) {
-            return ResponseHelper::error('Please verify your OTP first.', 403);
-        }
+        // if (!$otpVerified) {
+        //     return ResponseHelper::error('Please verify your OTP first.', 403);
+        // }
 
         $token = JWTAuth::fromUser($user);
 
