@@ -32,7 +32,8 @@ class Artist extends Model
 
     public function songs()
     {
-        return $this->hasMany(Song::class, 'artist_id', 'artist_id'); // ✅ relasi pakai UUID
+        return $this->hasMany(Song::class, 'artist_id', 'artist_id'); // UUID
     }
+
 
 }
