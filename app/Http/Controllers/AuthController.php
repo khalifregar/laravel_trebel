@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\UserOtp;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Helpers\ResponseHelper;
 use App\Services\OtpService;
@@ -34,24 +35,16 @@ class AuthController extends Controller
                 $user_id = random_int(1000, 9999);
             } while (User::withTrashed()->where('user_id', $user_id)->exists());
         } else {
-            $existingUser = User::withTrashed()
-                ->where('user_id', $user_id)
-                ->first();
-
+            $existingUser = User::withTrashed()->where('user_id', $user_id)->first();
             if ($existingUser) {
                 if (!$existingUser->trashed()) {
                     return ResponseHelper::error('User ID is already registered.', 409);
                 }
-
                 $deletedAt = $existingUser->deleted_at;
-                $now = now();
-                $diffInMonths = $deletedAt->diffInMonths($now);
-
-                if ($diffInMonths < 3) {
-                    $remaining = 3 - $diffInMonths;
+                if ($deletedAt->diffInMonths(now()) < 3) {
+                    $remaining = 3 - $deletedAt->diffInMonths(now());
                     return ResponseHelper::error("You can register again after {$remaining} more month(s).", 403);
                 }
-
                 $existingUser->forceDelete();
             }
         }
@@ -64,22 +57,24 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // ✂️ OTP logic disabled
+        // OTP logic (optional)
         // $userOtp = $this->otpService->generateOtp(
         //     $user->user_id,
         //     $user->phone
         // );
-
         // $this->otpService->sendOtp($userOtp, $user->phone);
 
-        $token = JWTAuth::fromUser($user);
+        $accessToken = JWTAuth::fromUser($user);
+        $refreshToken = Str::random(60);
+        $user->update(['refresh_token' => hash('sha256', $refreshToken)]);
 
         return ResponseHelper::success('Register successful.', [
             'id' => $user->id,
             'user_id' => $user->user_id,
             'email' => $user->email,
             'username' => $user->username,
-            'access_token' => $token,
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
         ]);
     }
 
@@ -91,12 +86,9 @@ class AuthController extends Controller
         ]);
 
         $login = $request->input('login');
-        $password = $request->input('password');
-
         $user = User::withTrashed()
             ->where(function ($query) use ($login) {
-                $query->where('email', $login)
-                    ->orWhere('username', $login);
+                $query->where('email', $login)->orWhere('username', $login);
             })
             ->where('user_id', $user_id)
             ->first();
@@ -109,28 +101,52 @@ class AuthController extends Controller
             return ResponseHelper::error('Your account has been deleted. You cannot login.', 403);
         }
 
-        if (!Hash::check($password, $user->password)) {
+        if (!Hash::check($request->password, $user->password)) {
             return ResponseHelper::error('Invalid credentials.', 401);
         }
 
-        // ✂️ OTP verification disabled
+        // OTP verification (optional)
         // $otpVerified = UserOtp::where('user_id', $user->user_id)
         //     ->where('is_verified', true)
         //     ->latest('updated_at')
         //     ->first();
-
         // if (!$otpVerified) {
         //     return ResponseHelper::error('Please verify your OTP first.', 403);
         // }
 
-        $token = JWTAuth::fromUser($user);
+        $accessToken = JWTAuth::fromUser($user);
+        $refreshToken = Str::random(60);
+        $user->update(['refresh_token' => hash('sha256', $refreshToken)]);
 
         return ResponseHelper::success('Login successful.', [
             'id' => $user->id,
             'user_id' => $user->user_id,
             'email' => $user->email,
             'username' => $user->username,
-            'access_token' => $token,
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
+        ]);
+    }
+
+    public function refreshToken(Request $request)
+    {
+        $request->validate([
+            'refresh_token' => 'required|string',
+        ]);
+
+        $user = User::where('refresh_token', hash('sha256', $request->refresh_token))->first();
+
+        if (!$user) {
+            return ResponseHelper::error('Invalid refresh token', 401);
+        }
+
+        $accessToken = JWTAuth::fromUser($user);
+        $newRefreshToken = Str::random(60);
+        $user->update(['refresh_token' => hash('sha256', $newRefreshToken)]);
+
+        return ResponseHelper::success('Token refreshed successfully', [
+            'access_token' => $accessToken,
+            'refresh_token' => $newRefreshToken,
         ]);
     }
 
@@ -142,7 +158,6 @@ class AuthController extends Controller
             }
 
             JWTAuth::invalidate($token);
-
             return ResponseHelper::success('Logout successful');
         } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
             return ResponseHelper::error('Token is invalid', 401);
@@ -183,21 +198,10 @@ class AuthController extends Controller
             'password' => 'sometimes|string|min:6',
         ]);
 
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        if ($request->filled('email')) {
-            $user->email = $request->email;
-        }
-
-        if ($request->filled('username')) {
-            $user->username = $request->username;
-        }
-
-        if ($request->filled('phone')) {
-            $user->phone = $request->phone;
-        }
+        if ($request->filled('password')) $user->password = Hash::make($request->password);
+        if ($request->filled('email')) $user->email = $request->email;
+        if ($request->filled('username')) $user->username = $request->username;
+        if ($request->filled('phone')) $user->phone = $request->phone;
 
         $user->save();
 
@@ -219,7 +223,6 @@ class AuthController extends Controller
         }
 
         $user->delete();
-
         return ResponseHelper::success('Account deleted successfully. You can register again after 3 months.');
     }
 }

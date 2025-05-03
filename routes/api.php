@@ -9,6 +9,7 @@ use App\Http\Controllers\SongController;
 use App\Http\Controllers\GenreController;
 use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\LyricController;
+use App\Http\Controllers\SuperAdminAuthController;
 
 Route::post('trebel/register', [AuthController::class, 'register']);
 
@@ -24,11 +25,27 @@ Route::prefix('{user_id}/trebel')->group(function () {
 
 Route::post('logout', [AuthController::class, 'logout']);
 
+// ✅ Refresh token endpoint
+Route::post('token/refresh', [AuthController::class, 'refreshToken']);
+
 Route::prefix('otp')->group(function () {
     Route::post('send', [OtpController::class, 'sendOtp']);
     Route::post('verify', [OtpController::class, 'verifyOtp']);
     Route::post('resend', [OtpController::class, 'resendOtp']);
 });
+
+Route::prefix('superadmin')->group(function () {
+    Route::post('register', [SuperAdminAuthController::class, 'register']);
+    Route::post('login', [SuperAdminAuthController::class, 'login']);
+
+    // 🛡️ gunakan guard `internal`
+    Route::middleware('auth:internal')->group(function () {
+        Route::post('logout', [SuperAdminAuthController::class, 'logout']);
+        Route::get('profile', [SuperAdminAuthController::class, 'profile']);
+    });
+});
+
+
 
 Route::middleware('auth:api')->prefix('ai')->group(function () {
     Route::post('recommend', [AiController::class, 'recommend']);
@@ -79,5 +96,3 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('/genres/{genre_id}', [GenreController::class, 'update']);
     Route::delete('/genres/{genre_id}', [GenreController::class, 'destroy']);
 });
-
-
