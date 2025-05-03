@@ -39,7 +39,7 @@ Route::prefix('superadmin')->group(function () {
     Route::post('login', [SuperAdminAuthController::class, 'login']);
 
     // 🛡️ gunakan guard `internal`
-    Route::middleware('auth:internal')->group(function () {
+    Route::middleware('auth:internal_api')->group(function () {
         Route::post('logout', [SuperAdminAuthController::class, 'logout']);
         Route::get('profile', [SuperAdminAuthController::class, 'profile']);
     });

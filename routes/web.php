@@ -16,7 +16,7 @@ Route::prefix('superadmin')->group(function () {
     Route::post('/login', [SuperAdminWebAuthController::class, 'login'])->name('superadmin.login.post');
 
     // Protected routes with 'internal' guard
-    Route::middleware('auth:internal')->group(function () {
+    Route::middleware('auth:internal_web')->group(function () {
         Route::get('/dashboard', fn () => view('superadmin.home.home_admin'))->name('superadmin.dashboard');
         Route::post('/logout', [SuperAdminWebAuthController::class, 'logout'])->name('superadmin.logout');
     });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Services\SuperAdminAuthService;
 use App\Helpers\ResponseHelper;
 
@@ -50,6 +51,8 @@ class SuperAdminAuthController extends Controller
                 'email' => $result['admin']->email,
                 'username' => $result['admin']->username,
                 'access_token' => $result['token'],
+                'token_type' => 'bearer',
+                'expires_in' => auth('internal_api')->factory()->getTTL() * 60,
             ]);
         } catch (\Exception $e) {
             return ResponseHelper::error($e->getMessage(), 401);
@@ -59,7 +62,8 @@ class SuperAdminAuthController extends Controller
     public function logout()
     {
         try {
-            $this->service->logout();
+            Auth::guard('internal_api')->logout();
+
             return ResponseHelper::success('Logout successful');
         } catch (\Exception $e) {
             return ResponseHelper::error('Logout failed.', 500);
@@ -69,7 +73,11 @@ class SuperAdminAuthController extends Controller
     public function profile()
     {
         try {
-            $admin = $this->service->profile();
+            $admin = Auth::guard('internal_api')->user();
+
+            if (! $admin) {
+                return ResponseHelper::error('Unauthorized.', 401);
+            }
 
             return ResponseHelper::success('Profile fetched.', [
                 'email' => $admin->email,
