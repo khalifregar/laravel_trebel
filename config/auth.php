@@ -32,20 +32,38 @@ return [
             'driver' => 'jwt',
             'provider' => 'super_admin',
         ],
+
+        // Admin (Web form login - dibuat oleh SuperAdmin)
+        'admin_web' => [
+            'driver' => 'session',
+            'provider' => 'admins',
+        ],
+
+        // Admin (API JWT)
+        'admin_api' => [
+            'driver' => 'jwt',
+            'provider' => 'admins',
+        ],
     ],
 
     'providers' => [
 
-        // Model user biasa
+        // User biasa
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
 
-        // Model superadmin
+        // SuperAdmin
         'super_admin' => [
             'driver' => 'eloquent',
             'model' => App\Models\SuperAdmin::class,
+        ],
+
+        // Admin (dibuat oleh SuperAdmin)
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
         ],
     ],
 
@@ -54,6 +72,22 @@ return [
         // Reset password untuk user
         'users' => [
             'provider' => 'users',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Reset password untuk admin
+        'admins' => [
+            'provider' => 'admins',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Reset password untuk super admin
+        'super_admin' => [
+            'provider' => 'super_admin',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,

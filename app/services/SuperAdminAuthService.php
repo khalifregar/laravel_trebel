@@ -4,13 +4,18 @@ namespace App\Services;
 
 use App\Models\SuperAdmin;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Auth;
-
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class SuperAdminAuthService
 {
+    /**
+     * Mendaftarkan superadmin (hanya satu).
+     *
+     * @param array $data
+     * @return array
+     * @throws \Exception
+     */
     public function register(array $data): array
     {
         if (SuperAdmin::count() > 0) {
@@ -31,6 +36,14 @@ class SuperAdminAuthService
         ];
     }
 
+    /**
+     * Login superadmin (email atau username) via JWT.
+     *
+     * @param string $login
+     * @param string $password
+     * @return array
+     * @throws \Exception
+     */
     public function login(string $login, string $password): array
     {
         $admin = SuperAdmin::where('email', $login)
@@ -49,13 +62,31 @@ class SuperAdminAuthService
         ];
     }
 
+    /**
+     * Logout JWT-based session.
+     *
+     * @return void
+     * @throws \Exception
+     */
     public function logout(): void
     {
-        JWTAuth::invalidate(JWTAuth::getToken());
+        $token = JWTAuth::getToken();
+
+        if (!$token) {
+            throw new \Exception('Token not provided.');
+        }
+
+        JWTAuth::invalidate($token);
     }
 
+    /**
+     * Get authenticated superadmin profile (web or api).
+     *
+     * @return SuperAdmin
+     */
     public function profile(): SuperAdmin
     {
-        return Auth::guard('internal')->user();
+        return Auth::guard('internal_web')->user()
+            ?? Auth::guard('internal_api')->user();
     }
 }
