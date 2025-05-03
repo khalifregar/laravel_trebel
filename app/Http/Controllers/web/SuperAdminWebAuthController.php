@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 class SuperAdminWebAuthController extends Controller
 {
     /**
-     * Display the login form for Super Admins.
+     * Show the login form for SuperAdmin.
      */
     public function showLoginForm()
     {
@@ -17,7 +17,7 @@ class SuperAdminWebAuthController extends Controller
     }
 
     /**
-     * Handle login request for Super Admins.
+     * Handle login request for SuperAdmin (via session).
      */
     public function login(Request $request)
     {
@@ -34,10 +34,11 @@ class SuperAdminWebAuthController extends Controller
         $remember = $request->boolean('remember');
 
         if (Auth::guard('internal_web')->attempt($credentials, $remember)) {
-            $request->session()->regenerate(); // prevent session fixation
-            return redirect()->route('superadmin.dashboard'); // <-- ini benar
-        }
+            $request->session()->regenerate();
 
+            // Optional: pakai intended jika ada middleware redirect sebelumnya
+            return redirect()->intended(route('superadmin.dashboard'));
+        }
 
         return back()
             ->withInput($request->only('login', 'remember'))
@@ -45,11 +46,11 @@ class SuperAdminWebAuthController extends Controller
     }
 
     /**
-     * Logout the authenticated Super Admin.
+     * Logout the authenticated SuperAdmin.
      */
     public function logout(Request $request)
     {
-        Auth::guard('internal')->logout();
+        Auth::guard('internal_web')->logout(); // ✅ perbaikan di sini
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

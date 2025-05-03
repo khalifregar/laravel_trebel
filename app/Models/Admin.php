@@ -6,11 +6,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class SuperAdmin extends Authenticatable implements JWTSubject
+class Admin extends Authenticatable implements JWTSubject
 {
     use Notifiable;
 
-    protected $table = 'super_admins';
+    protected $table = 'admins';
 
     protected $fillable = [
         'email',
@@ -31,11 +31,5 @@ class SuperAdmin extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims(): array
     {
         return [];
-    }
-
-    // Optional: Jika nanti kamu ingin relasi SuperAdmin → Admin
-    public function admins()
-    {
-        return $this->hasMany(Admin::class);
     }
 }
