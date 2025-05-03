@@ -28,10 +28,16 @@ class Song extends Model
         });
     }
 
-public function artist()
-{
-    return $this->belongsTo(Artist::class, 'artist_id', 'artist_id'); // ✅ BENAR, UUID ke UUID
-}
+    public function lyric()
+    {
+        return $this->hasOne(Lyric::class);
+    }
+
+    public function artist()
+    {
+        return $this->belongsTo(Artist::class, 'artist_id', 'artist_id'); // ingat: UUID
+    }
+
 
 
     public function genre()

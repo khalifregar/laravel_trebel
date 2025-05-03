@@ -17,11 +17,14 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'password',
         'phone',
+        'refresh_token', // ✅ Tambahkan ini
     ];
 
     protected $hidden = [
         'password',
+        'refresh_token', // ✅ Sembunyikan dari response JSON
     ];
+
 
     protected $dates = [
         'deleted_at', // 🔥 Tambahkan supaya field deleted_at dibaca sebagai Carbon date
