@@ -8,18 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('songs');
+
         Schema::create('songs', function (Blueprint $table) {
-            $table->id(); // Primary key internal
-            $table->uuid('song_id')->unique(); // UUID untuk public access
+            $table->id(); // internal PK
+            $table->uuid('song_id')->unique(); // UUID untuk public
 
             $table->string('title');
             $table->string('album')->nullable();
             $table->string('duration')->nullable();
 
-            // Relasi ke artist
-            $table->foreignId('artist_id')->constrained('artists')->onDelete('restrict');
+            // Relasi ke artist_id berbasis UUID
+            $table->uuid('artist_id')->nullable();
+            $table->foreign('artist_id')->references('artist_id')->on('artists')->onDelete('set null');
 
-            // Relasi ke genre
+            // Relasi ke genre_id berbasis ID biasa
             $table->foreignId('genre_id')->constrained('genres')->onDelete('restrict');
 
             $table->timestamps();
