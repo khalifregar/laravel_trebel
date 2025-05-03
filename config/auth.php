@@ -8,28 +8,41 @@ return [
     ],
 
     'guards' => [
+
+        // User (web login)
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
         ],
 
+        // User (API JWT)
         'api' => [
-            'driver' => 'jwt', // JWT untuk user biasa
+            'driver' => 'jwt',
             'provider' => 'users',
         ],
 
-        'internal' => [
-            'driver' => 'jwt', // JWT untuk superadmin
-            'provider' => 'super_admin', // ✅ harus match dengan providers
+        // SuperAdmin (Web form login)
+        'internal_web' => [
+            'driver' => 'session',
+            'provider' => 'super_admin',
+        ],
+
+        // SuperAdmin (API JWT via Postman)
+        'internal_api' => [
+            'driver' => 'jwt',
+            'provider' => 'super_admin',
         ],
     ],
 
     'providers' => [
+
+        // Model user biasa
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
 
+        // Model superadmin
         'super_admin' => [
             'driver' => 'eloquent',
             'model' => App\Models\SuperAdmin::class,
@@ -37,6 +50,8 @@ return [
     ],
 
     'passwords' => [
+
+        // Reset password untuk user
         'users' => [
             'provider' => 'users',
             'table' => 'password_reset_tokens',

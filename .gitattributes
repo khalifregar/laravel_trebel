@@ -1,11 +1,24 @@
+# ===== Normalize line endings
 * text=auto eol=lf
 
+# ===== Language mappings
 *.blade.php diff=html
-*.css diff=css
-*.html diff=html
+*.css diff=css linguist-vendored
+*.html diff=html linguist-vendored
+*.scss diff=css linguist-vendored
+*.js diff=javascript linguist-vendored
 *.md diff=markdown
 *.php diff=php
 
+# ===== Ignore specific files/folders from export
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# ===== Ignore vendor assets from language stats
+public/assets/* linguist-vendored
+resources/assets/* linguist-vendored
+resources/css/* linguist-vendored
+resources/js/* linguist-vendored
+resources/sass/* linguist-vendored
+resources/views/vendor/* linguist-vendored

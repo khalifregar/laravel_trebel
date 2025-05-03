@@ -33,7 +33,7 @@ class SuperAdminWebAuthController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (Auth::guard('internal')->attempt($credentials, $remember)) {
+        if (Auth::guard('internal_web')->attempt($credentials, $remember)) {
             $request->session()->regenerate(); // prevent session fixation
             return redirect()->route('superadmin.dashboard'); // <-- ini benar
         }
