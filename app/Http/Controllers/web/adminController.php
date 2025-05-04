@@ -11,9 +11,9 @@ class AdminController extends Controller
 {
     public function index()
     {
-        $admins = Admin::all();
-        return view('superadmin.admins.index', compact('admins'));
+        return view('superadmin.home.home_admin'); // ✅ Tidak perlu $admins lagi
     }
+
 
     public function create()
     {
@@ -23,13 +23,16 @@ class AdminController extends Controller
     public function store(Request $request, AdminService $adminService)
     {
         $validated = $request->validate([
-            'email' => 'required|email|unique:admins,email',
+            'email'    => 'required|email|unique:admins,email',
             'username' => 'required|string|unique:admins,username',
             'password' => 'required|min:6',
         ]);
 
-        $adminService->createAdmin($validated);
+        $admin = $adminService->createAdmin($validated);
 
-        return redirect()->route('superadmin.admins.index')->with('success', 'Admin created successfully.');
+        return redirect()
+            ->route('superadmin.dashboard')
+            ->with('success', 'Admin created successfully.')
+            ->with('created_admin', $admin);
     }
 }

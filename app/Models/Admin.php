@@ -16,7 +16,9 @@ class Admin extends Authenticatable implements JWTSubject
         'email',
         'username',
         'password',
+        'role', // ⬅️ ini penting
     ];
+
 
     protected $hidden = [
         'password',
@@ -31,5 +33,29 @@ class Admin extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims(): array
     {
         return [];
+    }
+
+    // ✅ Login status accessor
+    public function getLoginStatusAttribute(): string
+    {
+        return $this->last_login_at ? 'Active' : 'Belum Login';
+    }
+
+    // ✅ Scope search
+    public function scopeSearch($query, $term)
+    {
+        $term = trim($term);
+
+        return $query->where(function ($q) use ($term) {
+            $q->where('username', 'like', "%$term%")
+              ->orWhere('email', 'like', "%$term%")
+              ->orWhere(function ($q2) use ($term) {
+                  if (strtolower($term) === 'belum login') {
+                      $q2->whereNull('last_login_at');
+                  } elseif (strtolower($term) === 'active') {
+                      $q2->whereNotNull('last_login_at');
+                  }
+              });
+        });
     }
 }

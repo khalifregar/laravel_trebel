@@ -1,47 +1,106 @@
-@extends('layouts.app') {{-- Sesuaikan layout kamu --}}
+<!doctype html>
+<html lang="en">
 
-@section('title', 'Create Admin')
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-@section('content')
-<div class="container mt-4">
-    <h3 class="mb-4">Create New Admin</h3>
+    <link rel="stylesheet" href="{{ asset('web/shared/fonts/icomoon/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('web/shared/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('web/shared/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('web/shared/css/style.css') }}">
 
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <strong>There were some problems with your input:</strong>
-            <ul class="mb-0 mt-2">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+    <title>Create Admin | Internal Tuno</title>
+
+    <style>
+        .field-icon {
+            position: absolute;
+            top: 38px;
+            right: 15px;
+            cursor: pointer;
+            z-index: 2;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="d-lg-flex half">
+        <div class="bg order-1 order-md-2"
+            style="background-image: url('{{ asset('web/shared/images/download (32).jpeg') }}');"></div>
+        <div class="contents order-2 order-md-1">
+            <div class="container">
+                <div class="row align-items-center justify-content-center">
+                    <div class="col-md-7">
+                        <h3>Create <strong>New Admin</strong></h3>
+                        <p class="mb-4">Superadmin, use this form to add a new admin account to the internal system.</p>
+
+                        <form action="{{ route('superadmin.admins.store') }}" method="POST">
+                            @csrf
+                            @if ($errors->any())
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            <div class="form-group first">
+                                <label for="email">Email</label>
+                                <input type="email" class="form-control" name="email" id="email"
+                                    placeholder="admin@example.com" value="{{ old('email') }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" class="form-control" name="username" id="username"
+                                    placeholder="adminusername" value="{{ old('username') }}">
+                            </div>
+
+                            <div class="form-group position-relative">
+                                <label for="password">Password</label>
+                                <input type="password" class="form-control" name="password" id="password"
+                                    placeholder="Create a password">
+                                <span toggle="#password" class="fa fa-fw fa-eye field-icon toggle-password"></span>
+                            </div>
+
+                            <div class="form-group position-relative mb-4">
+                                <label for="password_confirmation">Confirm Password</label>
+                                <input type="password" class="form-control" name="password_confirmation"
+                                    id="password_confirmation" placeholder="Repeat the password">
+                                <span toggle="#password_confirmation"
+                                    class="fa fa-fw fa-eye field-icon toggle-password"></span>
+                            </div>
+
+                            <input type="submit" value="Create Admin" class="btn btn-block btn-primary">
+                        </form>
+
+                    </div>
+                </div>
+            </div>
         </div>
-    @endif
+    </div>
 
-    <form action="{{ route('superadmin.admins.store') }}" method="POST" enctype="multipart/form-data">
-        @csrf
+    <script src="{{ asset('web/shared/js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ asset('web/shared/js/popper.min.js') }}"></script>
+    <script src="{{ asset('web/shared/js/bootstrap.min.js') }}"></script>
+    <script src="{{ asset('web/shared/js/main.js') }}"></script>
 
-        <div class="form-group">
-            <label for="username">Username <span class="text-danger">*</span></label>
-            <input type="text" name="username" class="form-control" value="{{ old('username') }}" required>
-        </div>
+    <script>
+        $(document).ready(function() {
+            $(".toggle-password").click(function() {
+                const input = $($(this).attr("toggle"));
+                const type = input.attr("type") === "password" ? "text" : "password";
+                input.attr("type", type);
+                $(this).toggleClass("fa-eye fa-eye-slash");
+            });
+        });
+    </script>
+</body>
 
-        <div class="form-group">
-            <label for="email">Email <span class="text-danger">*</span></label>
-            <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
-        </div>
-
-        <div class="form-group">
-            <label for="password">Password <span class="text-danger">*</span></label>
-            <input type="password" name="password" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-            <label for="avatar">Avatar (optional)</label>
-            <input type="file" name="avatar" class="form-control-file">
-        </div>
-
-        <button type="submit" class="btn btn-success">Create Admin</button>
-        <a href="{{ route('superadmin.admins.index') }}" class="btn btn-secondary">Cancel</a>
-    </form>
-</div>
-@endsection
+</html>
