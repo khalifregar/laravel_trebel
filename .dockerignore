@@ -1,0 +1,21 @@
+# Laravel
+/vendor
+/node_modules
+/storage/logs
+/storage/framework/cache
+/storage/framework/views
+/storage/framework/sessions
+
+# Umum
+.git
+.gitignore
+.env
+*.env
+*.log
+*.sqlite
+.idea
+.vscode
+*.swp
+.DS_Store
+npm-debug.log
+docker-compose.override.yml

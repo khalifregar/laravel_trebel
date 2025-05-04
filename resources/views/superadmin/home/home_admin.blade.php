@@ -24,28 +24,37 @@
     <!-- End layout styles -->
 
     <link rel="shortcut icon" href="{{ asset('web/template/assets/images/favicon.png') }}" />
+    @livewireStyles
+
 </head>
 
 
 <body>
     <div class="container-scroller">
         <!-- partial:partials/_sidebar.html -->
-        <nav class="sidebar sidebar-offcanvas" id="sidebar">
-            @include('superadmin.home.partials.navbar')
-        </nav>
+<nav class="sidebar sidebar-offcanvas" id="sidebar">
+    @include('superadmin.home.partials.navbar')
+</nav>
+
         <!-- partial -->
         <div class="container-fluid page-body-wrapper">
             <!-- partial:partials/_navbar.html -->
             <nav class="navbar p-0 fixed-top d-flex flex-row">
                 @include('superadmin.home.partials.navbar_body_wrapper')
             </nav>
+
+
             <!-- partial -->
             <div class="main-panel">
                 <div class="content-wrapper">
                     @include('superadmin.home.partials.potential_wrapper')
                     @include('superadmin.home.partials.revenue_wrapper')
                     @include('superadmin.home.partials.daily_wrapper')
-                    @include('superadmin.home.partials.order_status')
+                    {{-- @include('superadmin.home.partials.order_status') --}}
+                    @livewire('admin-search')
+
+
+
                     <div class="row">
                         <div class="col-md-6 col-xl-4 grid-margin stretch-card">
                             <div class="card">
@@ -333,6 +342,10 @@
 <script src="{{ asset('web/template/assets/js/dashboard.js') }}"></script>
 
     <!-- End custom js for this page -->
+
+    @livewireScripts
+    @stack('scripts')
+
 </body>
 
 </html>

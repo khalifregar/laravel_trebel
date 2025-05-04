@@ -2,26 +2,30 @@
     <a class="sidebar-brand brand-logo" href="index.html"><img src="assets/images/logo.svg" alt="logo" /></a>
     <a class="sidebar-brand brand-logo-mini" href="index.html"><img src="assets/images/logo-mini.svg" alt="logo" /></a>
 </div>
-
 <ul class="nav">
     <li class="nav-item profile">
         <div class="profile-desc">
             <div class="profile-pic">
                 <div class="count-indicator">
-                    <img class="img-xs rounded-circle " src="web/template/assets/images/faces/face15.jpg" alt="">
+                    @php
+                        $user = Auth::guard('internal_web')->user() ?? Auth::guard('admin_web')->user();
+                    @endphp
+                    <img class="img-xs rounded-circle"
+                        src="{{ $user?->photo ? asset($user->photo) : asset('web/template/assets/images/faces/face15.jpg') }}"
+                        alt="">
                     <span class="count bg-success"></span>
                 </div>
-                @php
-                $user = Auth::guard('internal_web')->user();
-            @endphp
+                <div class="profile-name">
+                    <h5 class="mb-0 font-weight-normal">
+                        {{ $user?->name ?? $user?->username ?? $user?->email ?? 'Guest' }}
+                    </h5>
+                    <span>
+                        {{ Auth::guard('internal_web')->check() ? 'Superadmin' : (Auth::guard('admin_web')->check() ? 'Admin' : 'Guest') }}
+                    </span>
+                </div>
 
-            <div class="profile-name">
-                <h5 class="mb-0 font-weight-normal">
-                    {{ $user->name ?? $user->username ?? $user->email }}
-                </h5>
-                <span>Gold Member</span>
-            </div>
-            </div>
+
+        </div>
             <a href="#" id="profile-dropdown" data-toggle="dropdown"><i class="mdi mdi-dots-vertical"></i></a>
             <div class="dropdown-menu dropdown-menu-right sidebar-dropdown preview-list" aria-labelledby="profile-dropdown">
                 <a href="#" class="dropdown-item preview-item">

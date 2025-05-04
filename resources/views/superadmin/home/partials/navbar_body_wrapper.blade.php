@@ -15,31 +15,51 @@
         </li>
     </ul>
     <ul class="navbar-nav navbar-nav-right">
+        @if (isSuperadmin())
         <li class="nav-item dropdown d-none d-lg-block">
             <a class="nav-link btn btn-success create-new-button" id="createbuttonDropdown"
-            data-toggle="dropdown" aria-expanded="false" href="#">+ Create New Admin</a>
+               data-toggle="dropdown" aria-expanded="false" href="#">+ Create New Admin</a>
 
-        <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
-            aria-labelledby="createbuttonDropdown">
-            <h6 class="p-3 mb-0">Admin Tools</h6>
-            <div class="dropdown-divider"></div>
+            <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
+                 aria-labelledby="createbuttonDropdown">
+                <h6 class="p-3 mb-0">Admin Tools</h6>
+                <div class="dropdown-divider"></div>
 
-            <a class="dropdown-item preview-item" href="{{ route('superadmin.admins.create') }}">
-                <div class="preview-thumbnail">
-                    <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-account-plus text-success"></i>
+                <a class="dropdown-item preview-item" href="{{ route('superadmin.admins.create') }}">
+                    <div class="preview-thumbnail">
+                        <div class="preview-icon bg-dark rounded-circle">
+                            <i class="mdi mdi-account-plus text-success"></i>
+                        </div>
                     </div>
-                </div>
-                <div class="preview-item-content">
-                    <p class="preview-subject ellipsis mb-1">Create New Admin</p>
-                </div>
-            </a>
+                    <div class="preview-item-content">
+                        <p class="preview-subject ellipsis mb-1">Create New Admin</p>
+                    </div>
+                </a>
 
-            <div class="dropdown-divider"></div>
-            <p class="p-3 mb-0 text-center">Manage Admins</p>
-        </div>
+                @if (session('created_admin'))
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item preview-item">
+                        <div class="preview-thumbnail">
+                            <div class="preview-icon bg-dark rounded-circle">
+                                <i class="mdi mdi-account-check text-info"></i>
+                            </div>
+                        </div>
+                        <div class="preview-item-content">
+                            <p class="preview-subject mb-1">
+                                New Admin Created: <strong>{{ session('created_admin.username') }}</strong>
+                            </p>
+                            <p class="text-muted text-small mb-0">Role: {{ session('created_admin.role') }}</p>
+                        </div>
+                    </div>
+                @endif
 
+                <div class="dropdown-divider"></div>
+                <p class="p-3 mb-0 text-center">Manage Admins</p>
+            </div>
         </li>
+    @endif
+
+
         <li class="nav-item nav-settings d-none d-lg-block">
             <a class="nav-link" href="#">
                 <i class="mdi mdi-view-grid"></i>
@@ -144,16 +164,22 @@
         <li class="nav-item dropdown">
             <a class="nav-link" id="profileDropdown" href="#" data-toggle="dropdown">
                 @php
-                $user = Auth::guard('internal_web')->user();
+                $user = Auth::guard('internal_web')->user() ?? Auth::guard('admin_web')->user();
             @endphp
 
             <div class="navbar-profile">
-                <img class="img-xs rounded-circle" src="{{ asset('web/template/assets/images/faces/face15.jpg') }}" alt="">
+                <img class="img-xs rounded-circle"
+                src="{{ $user?->photo ? asset($user->photo) : asset('web/template/assets/images/faces/face15.jpg') }}"
+                alt="Profile Image">
+
+
                 <p class="mb-0 d-none d-sm-block navbar-profile-name">
-                    {{ $user->name ?? $user->username ?? $user->email }}
+                    {{ $user?->name ?? $user?->username ?? $user?->email ?? 'Guest' }}
                 </p>
+
                 <i class="mdi mdi-menu-down d-none d-sm-block"></i>
             </div>
+
 
             </a>
             <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"

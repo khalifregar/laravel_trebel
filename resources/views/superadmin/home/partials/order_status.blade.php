@@ -1,71 +1,58 @@
-<div class="row ">
-    <div class="col-12 grid-margin">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title">Order Status</h4>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <div class="form-check form-check-muted m-0">
-                                        <label class="form-check-label">
-                                            <input type="checkbox" class="form-check-input">
-                                        </label>
-                                    </div>
-                                </th>
-                                <th> Client Name </th>
-                                <th> Order No </th>
-                                <th> Product Cost </th>
-                                <th> Project </th>
-                                <th> Payment Mode </th>
-                                <th> Start Date </th>
-                                <th> Payment Status </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="form-check form-check-muted m-0">
-                                        <label class="form-check-label">
-                                            <input type="checkbox" class="form-check-input">
-                                        </label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <img src="assets/images/faces/face1.jpg" alt="image" />
-                                    <span class="pl-2">Henry Klein</span>
-                                </td>
-                                <td> 02312 </td>
-                                <td> $14,500 </td>
-                                <td> Dashboard </td>
-                                <td> Credit card </td>
-                                <td> 04 Dec 2019 </td>
-                                <td>
-                                    <div class="badge badge-outline-success">Approved</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="form-check form-check-muted m-0">
-                                        <label class="form-check-label">
-                                            <input type="checkbox" class="form-check-input">
-                                        </label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <img src="assets/images/faces/face2.jpg" alt="image" />
-                                    <span class="pl-2">Estella Bryan</span>
-                                </td>
-                                <td> 02312 </td>
-                                <td> $14,500 </td>
-                                <td> Website </td>
-                                <td> Cash on delivered </td>
-                                <td> 04 Dec 2019 </td>
-                                <td>
-                                    <div class="badge badge-outline-warning">Pending</div>
-                                </td>
-                            </tr>
+@php
+    use Illuminate\Support\Facades\Auth;
+    use Illuminate\Support\Facades\Log;
+
+    $user = Auth::user();
+    $role = strtolower($user->role ?? '');
+    $isSuperadmin = $role === 'superadmin';
+
+    Log::info('[ROLE CHECK] Auth user:', [
+        'id' => $user->id ?? null,
+        'username' => $user->username ?? null,
+        'role' => $user->role ?? null,
+    ]);
+@endphp
+
+{{-- DEBUG VIEW --}}
+<div style="background: #fffae6; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px;">
+    <strong>Role: </strong> {{ $user->role ?? 'N/A' }} <br>
+    <strong>Is Superadmin?</strong> {{ $isSuperadmin ? '✅ YES' : '❌ NO' }}
+</div>
+
+@if ($isSuperadmin)
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Admin Created</h4>
+
+            {{-- 🔍 Search Bar --}}
+            <ul class="navbar-nav w-100">
+                <li class="nav-item w-100">
+                    <div class="nav-link mt-2 mt-md-0 d-none d-lg-flex search">
+                        <input
+                            type="text"
+                            class="form-control"
+                            wire:model.debounce.300ms="search"
+                            placeholder="Search by username, email, or status (Active / Belum Login)">
+                    </div>
+                </li>
+            </ul>
+
+            <div class="table-responsive mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th> Username </th>
+                            <th> Email </th>
+                            <th> Role </th>
+                            <th> Created At </th>
+                            <th> Status </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{-- Jika ada admin baru dibuat (via session flash) --}}
+                        @if (session('created_admin'))
+                            @php $admin = session('created_admin'); @endphp
                             <tr>
                                 <td>
                                     <div class="form-check form-check-muted m-0">
@@ -75,18 +62,20 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <img src="assets/images/faces/face5.jpg" alt="image" />
-                                    <span class="pl-2">Lucy Abbott</span>
+                                    <img src="{{ asset('assets/images/faces/face1.jpg') }}" alt="image" />
+                                    <span class="pl-2">{{ $admin['username'] }}</span>
                                 </td>
-                                <td> 02312 </td>
-                                <td> $14,500 </td>
-                                <td> App design </td>
-                                <td> Credit card </td>
-                                <td> 04 Dec 2019 </td>
+                                <td>{{ $admin['email'] ?? '-' }}</td>
+                                <td>Admin</td>
+                                <td>{{ \Carbon\Carbon::parse($admin['created_at'])->format('d M Y') }}</td>
                                 <td>
-                                    <div class="badge badge-outline-danger">Rejected</div>
+                                    <div class="badge badge-outline-success">Created</div>
                                 </td>
                             </tr>
+                        @endif
+
+                        {{-- Semua admin yang terfilter --}}
+                        @forelse ($filteredAdmins as $admin)
                             <tr>
                                 <td>
                                     <div class="form-check form-check-muted m-0">
@@ -96,43 +85,28 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <img src="assets/images/faces/face3.jpg" alt="image" />
-                                    <span class="pl-2">Peter Gill</span>
+                                    <img src="{{ asset('assets/images/faces/face2.jpg') }}" alt="image" />
+                                    <span class="pl-2">{{ $admin->username }}</span>
                                 </td>
-                                <td> 02312 </td>
-                                <td> $14,500 </td>
-                                <td> Development </td>
-                                <td> Online Payment </td>
-                                <td> 04 Dec 2019 </td>
+                                <td>{{ $admin->email }}</td>
+                                <td>Admin</td>
+                                <td>{{ $admin->created_at->format('d M Y') }}</td>
                                 <td>
-                                    <div class="badge badge-outline-success">Approved</div>
+                                    @if ($admin->last_login_at)
+                                        <div class="badge badge-outline-primary">Active</div>
+                                    @else
+                                        <div class="badge badge-outline-warning">Belum Login</div>
+                                    @endif
                                 </td>
                             </tr>
+                        @empty
                             <tr>
-                                <td>
-                                    <div class="form-check form-check-muted m-0">
-                                        <label class="form-check-label">
-                                            <input type="checkbox" class="form-check-input">
-                                        </label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <img src="assets/images/faces/face4.jpg" alt="image" />
-                                    <span class="pl-2">Sallie Reyes</span>
-                                </td>
-                                <td> 02312 </td>
-                                <td> $14,500 </td>
-                                <td> Website </td>
-                                <td> Credit card </td>
-                                <td> 04 Dec 2019 </td>
-                                <td>
-                                    <div class="badge badge-outline-success">Approved</div>
-                                </td>
+                                <td colspan="6" class="text-center text-muted">No admin found.</td>
                             </tr>
-                        </tbody>
-                    </table>
-                </div>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-</div>
+@endif
